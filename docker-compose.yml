@@ -1,0 +1,13 @@
+services:
+  miner-limiter:
+    build: .
+    container_name: cado-limiter
+    network_mode: "host"
+    pid: "host"
+    privileged: true
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10mb"
+        max-file: "3"
