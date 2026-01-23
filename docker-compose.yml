@@ -6,6 +6,11 @@ services:
     pid: "host"
     privileged: true
     restart: always
+    healthcheck:
+      test: ["CMD", "pgrep", "bash"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
