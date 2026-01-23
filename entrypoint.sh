@@ -4,28 +4,44 @@ APP_NAME="cado-nfs"
 TOTAL_CORES=240
 
 while true; do
-    PIDS=$(pgrep "$APP_NAME")
+    # 1. GENERATE RANDOM TIMERS AND LIMIT
+    RUN_DURATION=$(( ( RANDOM % 121 ) + 240 ))   # 4-6 minutes
+    PAUSE_DURATION=$(( ( RANDOM % 121 ) + 180 )) # 3-5 minutes
+    LIMIT_PCT=$(( ( RANDOM % 21 ) + 50 ))        # 50-70%
+    LIMIT_VAL=$(( LIMIT_PCT * TOTAL_CORES ))
 
-    if [ -n "$PIDS" ]; then
-        # Calculate random % between 50 and 70 of TOTAL system capacity
-        # Range is 12000 to 16800 for 240 cores
-        RAND_PERCENT=$(( ( RANDOM % 21 ) + 50 ))
-        LIMIT=$(( RAND_PERCENT * TOTAL_CORES ))
-        
-        echo "[$(date +%T)] $APP_NAME detected. Total System Goal: $RAND_PERCENT% (Limit: $LIMIT%)"
+    # --- PHASE 1: RUNNING (WITH LIMIT) ---
+    END_RUN=$(( $(date +%s) + RUN_DURATION ))
+    echo "[$(date +%T)] STARTING RUN PHASE: $((RUN_DURATION / 60))m at $LIMIT_PCT%..."
 
-        for PID in $PIDS; do
-            # Refresh cpulimit with the new random value
-            pkill -f "cpulimit -p $PID"
-            nohup cpulimit -p "$PID" -l "$LIMIT" -z > /dev/null 2>&1 &
-        done
-        
-        # Random sleep between 2 and 5 minutes
-        SLEEP_TIME=$(( ( RANDOM % 181 ) + 120 ))
-        echo "Holding this limit for $((SLEEP_TIME / 60))m $((SLEEP_TIME % 60))s..."
-        sleep $SLEEP_TIME
-    else
-        echo "[$(date +%T)] $APP_NAME not running. Checking again in 10s..."
-        sleep 10
-    fi
+    while [ $(date +%s) -lt $END_RUN ]; do
+        PIDS=$(pgrep "$APP_NAME")
+        if [ -n "$PIDS" ]; then
+            for PID in $PIDS; do
+                # Ensure it's unpaused and limited
+                kill -CONT "$PID" 2>/dev/null
+                if ! pgrep -f "cpulimit -p $PID -l $LIMIT_VAL" > /dev/null; then
+                    pkill -f "cpulimit -p $PID"
+                    nohup cpulimit -p "$PID" -l "$LIMIT_VAL" -z > /dev/null 2>&1 &
+                fi
+            done
+        fi
+        sleep 5
+    done
+
+    # --- PHASE 2: PAUSING ---
+    END_PAUSE=$(( $(date +%s) + PAUSE_DURATION ))
+    echo "[$(date +%T)] STARTING PAUSE PHASE: $((PAUSE_DURATION / 60))m..."
+
+    while [ $(date +%s) -lt $END_PAUSE ]; do
+        PIDS=$(pgrep "$APP_NAME")
+        if [ -n "$PIDS" ]; then
+            for PID in $PIDS; do
+                # If we find the app, stop it and kill any active limiter
+                pkill -f "cpulimit -p $PID"
+                kill -STOP "$PID" 2>/dev/null
+            done
+        fi
+        sleep 5
+    done
 done
