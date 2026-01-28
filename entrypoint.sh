@@ -1,7 +1,7 @@
 #!/bin/bash
 
 APP_NAME="cado-nfs"
-TOTAL_CORES=240
+TOTAL_CORES=112
 
 while true; do
     # 1. GENERATE RANDOM TIMERS AND LIMIT
