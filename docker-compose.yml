@@ -1,5 +1,5 @@
 services:
-  miner-limiter:
+  cado-container:
     build: .
     container_name: cado-limiter
     network_mode: "host"
