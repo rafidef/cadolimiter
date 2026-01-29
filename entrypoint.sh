@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_NAME="apoolminer"
+APP_NAME="cado-nfs"
 
 # --- DETEKSI CORE OTOMATIS ---
 TOTAL_CORES=$(nproc)
